@@ -1,3 +1,4 @@
+# Core dependencies
 torch>=2.0.0
 tiktoken
 numpy
@@ -5,3 +6,12 @@ datasets
 fastapi
 uvicorn
 streamlit
+scikit-learn
+pandas
+tqdm
+psutil
+pydantic
+requests
+
+# Optional distributed training (install if available)
+# ray[train]>=2.8.0

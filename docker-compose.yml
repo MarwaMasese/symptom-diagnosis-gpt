@@ -1,0 +1,55 @@
+# Docker Compose for Symptom-Diagnosis-GPT
+version: '3.8'
+
+services:
+  # API Service
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./src:/app/src
+    environment:
+      - PYTHONPATH=/app
+      - CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+  # Web UI Service (Optional)
+  web:
+    build: .
+    command: ["streamlit", "run", "src/streamlit_app.py", "--server.address", "0.0.0.0", "--server.port", "8501"]
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./src:/app/src
+    environment:
+      - PYTHONPATH=/app
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Ray Head Node (for distributed training)
+  ray-head:
+    image: rayproject/ray:latest
+    command: ["ray", "start", "--head", "--dashboard-host", "0.0.0.0", "--block"]
+    ports:
+      - "8265:8265"  # Ray dashboard
+      - "10001:10001"  # Ray client
+    volumes:
+      - ./src:/app/src
+      - ./data:/app/data
+    environment:
+      - RAY_DISABLE_IMPORT_WARNING=1
+    restart: unless-stopped
+
+volumes:
+  data:
+    driver: local
